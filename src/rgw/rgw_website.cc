@@ -94,6 +94,7 @@ bool RGWBucketWebsiteConf::should_redirect(const string& key, const int http_err
 	RGWBWRoutingRule redirect_all_rule;
 	redirect_all_rule.redirect_info.redirect = redirect_all;
 	redirect_all.http_redirect_code = 301;
+	redirect_all_rule.condition = {};
 	*redirect = redirect_all_rule;
 	return true;
   } else if (!routing_rules.check_key_and_error_code_condition(key, http_error_code, &rule)) {
