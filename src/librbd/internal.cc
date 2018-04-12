@@ -1772,6 +1772,7 @@ bool compare_by_name(const child_info_t& c1, const child_info_t& c2)
     r = dest->state->open(false);
     if (r < 0) {
       lderr(cct) << "failed to read newly created header" << dendl;
+      delete dest;
       return r;
     }
 
