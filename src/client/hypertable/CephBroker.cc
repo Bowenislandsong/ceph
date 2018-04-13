@@ -200,22 +200,22 @@ void CephBroker::read(ResponseCallbackRead *cb, uint32_t fd, uint32_t amount) {
 
   if (!m_open_file_map.get(fd, fdata)) {
     char errbuf[32];
-    sprintf(errbuf, "%d", fd);
+    sprintf(errbuf, "%u", fd);
     cb->error(Error::DFSBROKER_BAD_FILE_HANDLE, errbuf);
-    HT_ERRORF("bad file handle: %d", fd);
+    HT_ERRORF("bad file handle: %lu", (Lu)fd);
     return;
   }
 
   if ((offset = ceph_lseek(cmount, fdata->fd, 0, SEEK_CUR)) < 0) {
     std::string errs(cpp_strerror((int)-offset));
-    HT_ERRORF("lseek failed: fd=%d ceph_fd=%d offset=0 SEEK_CUR - %s",
-	      fd, fdata->fd, errs.c_str());
+    HT_ERRORF("lseek failed: fd=%lu ceph_fd=%d offset=0 SEEK_CUR - %s",
+	      (Lu)fd, fdata->fd, errs.c_str());
     report_error(cb, offset);
     return;
   }
 
   if ((nread = ceph_read(cmount, fdata->fd, (char *)buf.base, amount, 0)) < 0 ) {
-    HT_ERRORF("read failed: fd=%d ceph_fd=%d amount=%d", fd, fdata->fd, amount);
+    HT_ERRORF("read failed: fd=%lu ceph_fd=%d amount=%d", (Lu)fd, fdata->fd, amount);
     report_error(cb, -nread);
     return;
   }
@@ -236,14 +236,14 @@ void CephBroker::append(ResponseCallbackAppend *cb, uint32_t fd,
 
   if (!m_open_file_map.get(fd, fdata)) {
     char errbuf[32];
-    sprintf(errbuf, "%d", fd);
+    sprintf(errbuf, "%u", fd);
     cb->error(Error::DFSBROKER_BAD_FILE_HANDLE, errbuf);
     return;
   }
 
   if ((offset = (uint64_t)ceph_lseek(cmount, fdata->fd, 0, SEEK_CUR)) < 0) {
     std::string errs(cpp_strerror((int)-offset));
-    HT_ERRORF("lseek failed: fd=%d ceph_fd=%d offset=0 SEEK_CUR - %s", fd, fdata->fd,
+    HT_ERRORF("lseek failed: fd=%lu ceph_fd=%d offset=0 SEEK_CUR - %s", (Lu)fd, fdata->fd,
               errs.c_str());
     report_error(cb, offset);
     return;
@@ -251,8 +251,8 @@ void CephBroker::append(ResponseCallbackAppend *cb, uint32_t fd,
 
   if ((nwritten = ceph_write(cmount, fdata->fd, (const char *)data, amount, 0)) < 0) {
     std::string errs(cpp_strerror(nwritten));
-    HT_ERRORF("write failed: fd=%d ceph_fd=%d amount=%d - %s",
-	      fd, fdata->fd, amount, errs.c_str());
+    HT_ERRORF("write failed: fd=%lu ceph_fd=%d amount=%d - %s",
+	      (Lu)fd, fdata->fd, amount, errs.c_str());
     report_error(cb, -nwritten);
     return;
   }
@@ -260,7 +260,7 @@ void CephBroker::append(ResponseCallbackAppend *cb, uint32_t fd,
   int r;
   if (sync && ((r = ceph_fsync(cmount, fdata->fd, true)) != 0)) {
     std::string errs(cpp_strerror(errno));
-    HT_ERRORF("flush failed: fd=%d ceph_fd=%d - %s", fd, fdata->fd, errs.c_str());
+    HT_ERRORF("flush failed: fd=%lu ceph_fd=%d - %s", (Lu)fd, fdata->fd, errs.c_str());
     report_error(cb, r);
     return;
   }
@@ -275,15 +275,15 @@ void CephBroker::seek(ResponseCallback *cb, uint32_t fd, uint64_t offset) {
 
   if (!m_open_file_map.get(fd, fdata)) {
     char errbuf[32];
-    sprintf(errbuf, "%d", fd);
+    sprintf(errbuf, "%u", fd);
     cb->error(Error::DFSBROKER_BAD_FILE_HANDLE, errbuf);
     return;
   }
   loff_t res = ceph_lseek(cmount, fdata->fd, offset, SEEK_SET);
   if (res < 0) {
     std::string errs(cpp_strerror((int)res));
-    HT_ERRORF("lseek failed: fd=%d ceph_fd=%d offset=%llu - %s",
-	      fd, fdata->fd, (Llu)offset, errs.c_str());
+    HT_ERRORF("lseek failed: fd=%lu ceph_fd=%d offset=%llu - %s",
+	      (Lu)fd, fdata->fd, (Llu)offset, errs.c_str());
     report_error(cb, offset);
     return;
   }
@@ -331,18 +331,18 @@ void CephBroker::pread(ResponseCallbackRead *cb, uint32_t fd, uint64_t offset,
   ssize_t nread;
   StaticBuffer buf(new uint8_t [amount], amount);
 
-  HT_DEBUGF("pread fd=%d offset=%llu amount=%d", fd, (Llu)offset, amount);
+  HT_DEBUGF("pread fd=%lu offset=%llu amount=%d", (Lu)fd, (Llu)offset, amount);
 
   if (!m_open_file_map.get(fd, fdata)) {
     char errbuf[32];
-    sprintf(errbuf, "%d", fd);
+    sprintf(errbuf, "%u", fd);
     cb->error(Error::DFSBROKER_BAD_FILE_HANDLE, errbuf);
     return;
   }
 
   if ((nread = ceph_read(cmount, fdata->fd, (char *)buf.base, amount, offset)) < 0) {
     std::string errs(cpp_strerror(nread));
-    HT_ERRORF("pread failed: fd=%d ceph_fd=%d amount=%d offset=%llu - %s", fd, fdata->fd,
+    HT_ERRORF("pread failed: fd=%lu ceph_fd=%d amount=%d offset=%llu - %s", (Lu)fd, fdata->fd,
               amount, (Llu)offset, errs.c_str());
     report_error(cb, nread);
     return;
@@ -409,11 +409,11 @@ int CephBroker::rmdir_recursive(const char *directory) {
 void CephBroker::flush(ResponseCallback *cb, uint32_t fd) {
   OpenFileDataCephPtr fdata;
 
-  HT_DEBUGF("flush fd=%d", fd);
+  HT_DEBUGF("flush fd=%lu", (Lu)fd);
 
   if (!m_open_file_map.get(fd, fdata)) {
     char errbuf[32];
-    sprintf(errbuf, "%d", fd);
+    sprintf(errbuf, "%u", fd);
     cb->error(Error::DFSBROKER_BAD_FILE_HANDLE, errbuf);
     return;
   }
@@ -421,7 +421,7 @@ void CephBroker::flush(ResponseCallback *cb, uint32_t fd) {
   int r;
   if ((r = ceph_fsync(cmount, fdata->fd, true)) != 0) {
     std::string errs(cpp_strerror(r));
-    HT_ERRORF("flush failed: fd=%d  ceph_fd=%d - %s", fd, fdata->fd, errs.c_str());
+    HT_ERRORF("flush failed: fd=%lu ceph_fd=%d - %s", (Lu)fd, fdata->fd, errs.c_str());
     report_error(cb, -r);
     return;
   }
